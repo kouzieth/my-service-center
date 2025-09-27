@@ -1,9 +1,6 @@
+// api/telegram.js
 export default async function handler(req, res) {
-  return res.status(200).json({ ok: true });
-}      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ chat_id: msg.chat.id, text: `Pesan terkirim ke session ${session}` })
-    });
-  }
-
-  return res.status(200).end();
-};
+  // placeholder webhook handler
+  // Nanti kalau mau implement /reply langsung dari Telegram ke user via DB, kita tambahkan logic di sini.
+  return res.status(200).json({ ok: true, note: 'telegram webhook placeholder' });
+}
