@@ -1,52 +1,64 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
-  <title>Service Center</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <style>
-    body { font-family: Arial, sans-serif; padding: 16px; max-width:600px; margin:auto; }
-    label, input, textarea, button { display:block; width:100%; margin-top:8px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chat Service Center</title>
+<style>
+  body{font-family:Arial;padding:12px;max-width:720px;margin:auto}
+  #chat{border:1px solid #ddd;padding:12px;height:60vh;overflow:auto;background:#fafafa}
+  .msg{margin:8px 0}
+  .me{text-align:right}
+  .bot{text-align:left;color:#222}
+  form{display:flex;gap:8px;margin-top:8px}
+  input{flex:1;padding:8px}
+</style>
 </head>
 <body>
-  <h1>Service Center</h1>
-  <form id="contactForm">
-    <label>Nama</label>
-    <input name="name" required />
-    <label>Email / WA</label>
-    <input name="contact" />
-    <label>Pertanyaan / Keluhan</label>
-    <textarea name="message" rows="6" required></textarea>
-    <button type="submit">Kirim</button>
-  </form>
+<h2>Chat dengan CS</h2>
+<div id="chat"></div>
+<form id="f">
+  <input id="t" autocomplete="off" placeholder="Ketik pesan..." required />
+  <button>Kirim</button>
+</form>
 
-  <div id="result" style="margin-top:12px"></div>
+<script>
+const session = localStorage.getItem('sc_session') || (Math.random().toString(36).slice(2));
+localStorage.setItem('sc_session', session);
+const chatEl = document.getElementById('chat');
+const f = document.getElementById('f');
+const t = document.getElementById('t');
 
-  <script>
-    const form = document.getElementById('contactForm');
-    const result = document.getElementById('result');
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const data = Object.fromEntries(new FormData(form).entries());
-      result.textContent = 'Mengirim...';
-      try {
-        const r = await fetch('/api/contact', {
-          method: 'POST',
-          headers: { 'Content-Type':'application/json' },
-          body: JSON.stringify(data)
-        });
-        const j = await r.json();
-        if (r.ok) {
-          result.textContent = 'Pesan berhasil dikirim. Terima kasih!';
-          form.reset();
-        } else {
-          result.textContent = 'Gagal: ' + (j.error || r.status);
-        }
-      } catch (err) {
-        result.textContent = 'Error: ' + err.message;
-      }
-    });
-  </script>
+async function load() {
+  try {
+    const res = await fetch(`/api/messages?session=${session}`);
+    const j = await res.json();
+    chatEl.innerHTML = j.map(m=>{
+      const cls = m.sender === 'user' ? 'me' : (m.sender === 'admin' ? 'bot' : 'bot');
+      return `<div class="msg ${cls}"><small>${m.sender}</small><div>${escape(m.text)}</div></div>`;
+    }).join('');
+    chatEl.scrollTop = chatEl.scrollHeight;
+  } catch(e) { console.error(e); }
+}
+
+function escape(s){ return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;') : ''; }
+
+f.addEventListener('submit', async e=>{
+  e.preventDefault();
+  const text = t.value.trim();
+  if(!text) return;
+  // Optimistic UI
+  chatEl.insertAdjacentHTML('beforeend', `<div class="msg me"><small>you</small><div>${escape(text)}</div></div>`);
+  t.value=''; chatEl.scrollTop = chatEl.scrollHeight;
+  await fetch('/api/chat', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ session, text })
+  });
+  // server will store and respond; polling will fetch bot/admin replies
+});
+
+load();
+setInterval(load, 2500); // polling tiap 2.5s
+</script>
 </body>
 </html>
