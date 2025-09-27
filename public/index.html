@@ -3,26 +3,25 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Chat Service Center - Test</title>
+<title>Test Chat</title>
 <style>
   body{font-family:Arial;padding:12px;max-width:720px;margin:auto}
   #chat{border:1px solid #ddd;padding:12px;height:60vh;overflow:auto;background:#fafafa}
   .msg{margin:8px 0}
   .me{text-align:right}
-  .admin{text-align:left;color:#0b5}
+  .admin{text-align:left;color:#0a5}
   small{display:block;color:#666}
   form{display:flex;gap:8px;margin-top:8px}
   input{flex:1;padding:8px}
 </style>
 </head>
 <body>
-<h2>Chat dengan CS (Test)</h2>
+<h2>Chat Test (Edge Config)</h2>
 <div id="chat"></div>
 <form id="f">
-  <input id="t" autocomplete="off" placeholder="Ketik pesan..." required />
+  <input id="t" placeholder="Ketik pesan..." required />
   <button>Kirim</button>
 </form>
-
 <script>
 const session = localStorage.getItem('sc_session') || (Math.random().toString(36).slice(2));
 localStorage.setItem('sc_session', session);
@@ -30,47 +29,32 @@ const chatEl = document.getElementById('chat');
 const f = document.getElementById('f');
 const t = document.getElementById('t');
 
-function escape(s){ return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;') : ''; }
+function esc(s){ return s ? s.replace(/&/g,'&amp;').replace(/</g,'&lt;') : ''; }
 
 async function load() {
   try {
     const res = await fetch(`/api/messages?session=${session}`);
     const j = await res.json();
     chatEl.innerHTML = j.map(m=>{
-      const cls = m.sender === 'admin' ? 'admin' : (m.sender === 'user' ? 'me' : 'me');
-      return `<div class="msg ${cls}"><small>${escape(m.sender)} • ${new Date(m.created_at).toLocaleTimeString()}</small><div>${escape(m.text)}</div></div>`;
+      const cls = m.sender === 'admin' ? 'admin' : 'me';
+      return `<div class="msg ${cls}"><small>${esc(m.sender)} • ${new Date(m.created_at).toLocaleTimeString()}</small><div>${esc(m.text)}</div></div>`;
     }).join('');
     chatEl.scrollTop = chatEl.scrollHeight;
-  } catch(e){
-    console.error(e);
-  }
+  } catch(e){ console.error(e); }
 }
 
 f.addEventListener('submit', async e=>{
   e.preventDefault();
-  const text = t.value.trim();
-  if(!text) return;
-  // tampil sementara
-  const localMsg = { session_id: session, sender: 'user', text, created_at: new Date().toISOString() };
-  // optimistik render
-  chatEl.insertAdjacentHTML('beforeend', `<div class="msg me"><small>you • ${new Date(localMsg.created_at).toLocaleTimeString()}</small><div>${escape(text)}</div></div>`);
+  const text = t.value.trim(); if(!text) return;
+  // optimistic render
+  chatEl.insertAdjacentHTML('beforeend', `<div class="msg me"><small>you • ${new Date().toLocaleTimeString()}</small><div>${esc(text)}</div></div>`);
   t.value=''; chatEl.scrollTop = chatEl.scrollHeight;
-
-  // kirim ke server (api/chat sudah ada sebelumnya)
   try {
-    await fetch('/api/chat', {
-      method:'POST',
-      headers:{ 'Content-Type':'application/json' },
-      body: JSON.stringify({ session, text })
-    });
-    // server akan mengirim notifikasi ke Telegram; admin bisa reply /reply <session> pesan
-  } catch(err){
-    console.error(err);
-  }
+    await fetch('/api/chat', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session, text }) });
+  } catch(err){ console.error(err); }
 });
-
 load();
-setInterval(load, 2500); // polling setiap 2.5s
+setInterval(load, 2500);
 </script>
 </body>
 </html>
