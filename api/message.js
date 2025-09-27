@@ -1,12 +1,19 @@
 // api/messages.js
-const { createClient } = require('@supabase/supabase-js');
-const SUPA_URL = process.env.SUPABASE_URL;
-const SUPA_KEY = process.env.SUPABASE_KEY;
-const supa = createClient(SUPA_URL, SUPA_KEY);
+// Mengembalikan pesan untuk session tertentu
+export default async function handler(req, res) {
+  try {
+    const session = req.query.session || (req.body && req.body.session);
+    if (!session) return res.status(400).json({ error: 'session required' });
 
-module.exports = async (req, res) => {
-  const session = req.query.session;
-  if (!session) return res.status(400).json({ error: 'session required' });
-  const { data } = await supa.from('messages').select('session_id,sender,text,created_at').eq('session_id', session).order('created_at', { ascending: true }).limit(200);
-  res.status(200).json(data || []);
-};
+    globalThis.CHAT_MESSAGES = globalThis.CHAT_MESSAGES || [];
+    // ambil pesan untuk session dan urutkan
+    const msgs = globalThis.CHAT_MESSAGES
+      .filter(m => m.session_id === session)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    return res.status(200).json(msgs);
+  } catch (err) {
+    console.error('messages error', err);
+    return res.status(500).json({ error: String(err) });
+  }
+}
