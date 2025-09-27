@@ -1,53 +1,45 @@
+// api/chat.js
+import fetch from 'node-fetch';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { text } = req.body;
+    const { session, text } = req.body || {};
+    if (!text) return res.status(400).json({ error: 'text is required' });
 
-    const telegram = await fetch(
-      `https://api.telegram.org/bot${process.env.BOT_TOKEN}/sendMessage`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: process.env.ADMIN_CHAT_ID,
-          text: `User: ${text}`,
-        }),
-      }
-    );
+    // build notification text
+    const botToken = process.env.BOT_TOKEN;
+    const adminChat = process.env.ADMIN_CHAT_ID;
 
-    const result = await telegram.json();
-    return res.status(200).json(result);
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Server error', details: err.message });
-  }
-}    if (!BOT_TOKEN || !ADMIN_CHAT) {
-      return res.status(500).json({ error: 'BOT_TOKEN or ADMIN_CHAT missing in env', BOT_TOKEN_set: !!BOT_TOKEN, ADMIN_CHAT: ADMIN_CHAT });
+    if (!botToken || !adminChat) {
+      return res.status(500).json({ error: 'BOT_TOKEN or ADMIN_CHAT_ID not configured' });
     }
 
-    // send to Telegram and capture response
-    const tgResp = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const notif = `🆕 New chat\nSession: \`${session || 'no-session'}\`\nMessage: ${text}\n\nBalas di Telegram (manual).`;
+
+    const tgResp = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: ADMIN_CHAT, text: notif, parse_mode: 'Markdown' })
+      body: JSON.stringify({
+        chat_id: adminChat,
+        text: notif,
+        parse_mode: 'Markdown'
+      })
     });
 
     const tgJson = await tgResp.json();
 
-    // If Telegram API returned not ok, include details
     if (!tgJson.ok) {
-      console.error('Telegram error', tgJson);
-      return res.status(500).json({ error: 'Telegram API error', tg: tgJson });
+      console.error('Telegram API error', tgJson);
+      return res.status(500).json({ error: 'Telegram API error', details: tgJson });
     }
 
-    // success
-    return res.status(200).json({ ok: true, botReply: aiReply, telegram: tgJson });
-
+    return res.status(200).json({ ok: true, telegram: tgJson });
   } catch (err) {
-    console.error('chat error', err);
-    return res.status(500).json({ error: err.message || String(err) });
+    console.error('chat handler error', err);
+    return res.status(500).json({ error: String(err) });
   }
-};
+}
