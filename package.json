@@ -1,11 +1,7 @@
 {
   "name": "my-service-center",
   "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "start": "node server.js"
-  },
   "dependencies": {
-    "node-fetch": "^2.6.7"
+    "@upstash/redis": "latest"
   }
 }
