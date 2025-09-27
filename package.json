@@ -1,6 +1,11 @@
 {
-  "name": "service-center",
+  "name": "my-service-center",
   "version": "1.0.0",
-  "scripts": { "start": "vercel dev" },
-  "dependencies": { "node-fetch": "^2.6.7" }
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
 }
